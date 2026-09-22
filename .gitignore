@@ -7,3 +7,5 @@ uploads/*
 !uploads/.gitkeep
 coverage/
 *.log
+__pycache__/
+*.py[cod]
