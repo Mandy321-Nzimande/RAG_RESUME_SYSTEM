@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 8",
+    "description": "Verification requests for deterministic skill detection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Skills - Detect Skills",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rawText\": \"Experienced in Selenium WebDriver, Python, RAG, DeepEval and MCP (Model Context Protocol).\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/skills",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "skills"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Skills are detected', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.skills).to.include.members(['Selenium', 'Python', 'RAG', 'DeepEval', 'MCP (Model Context Protocol)']); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

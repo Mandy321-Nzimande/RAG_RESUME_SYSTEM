@@ -1,0 +1,204 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 11: LLM Re-Rank",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/search/rerank — single candidate",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Need a senior QA architect experienced in RAG, DeepEval, MCP and enterprise GenAI governance\",\n  \"candidates\": [\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"snippet\": \"Test Architect with 13+ years, RAG, DeepEval, MCP, Agentic QA System, LLM Evaluation, Azure DevOps, Postman, REST Assured, enterprise GenAI governance\"\n    }\n  ],\n  \"topK\": 10\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/rerank",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "rerank"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('results is an array', () => pm.expect(body.results).to.be.an('array'));",
+              "pm.test('model is returned', () => pm.expect(body.model).to.be.a('string'));",
+              "pm.test('results length <= input candidates', () => pm.expect(body.results.length).to.be.at.most(1));",
+              "if (body.results.length > 0) {",
+              "  const r = body.results[0];",
+              "  pm.test('result has resumeId', () => pm.expect(r.resumeId).to.be.a('string'));",
+              "  pm.test('resumeId is from input (no hallucination)', () => pm.expect(r.resumeId).to.eql('691db80aa895776f97b6eca6'));",
+              "  pm.test('rank is 1', () => pm.expect(r.rank).to.eql(1));",
+              "  pm.test('relevanceScore is between 0 and 1', () => {",
+              "    pm.expect(r.relevanceScore).to.be.a('number');",
+              "    pm.expect(r.relevanceScore).to.be.within(0, 1);",
+              "  });",
+              "  pm.test('reason is a string', () => pm.expect(r.reason).to.be.a('string'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"results\": [\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"rank\": 1,\n      \"relevanceScore\": 0.96,\n      \"reason\": \"Strong match for senior agentic QA, RAG, evaluation and governance requirements.\"\n    }\n  ],\n  \"model\": \"meta-llama/llama-4-scout-17b-16e-instruct\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search/rerank — multiple candidates (verify ordering)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior RAG engineer with LLM evaluation experience\",\n  \"candidates\": [\n    {\n      \"resumeId\": \"aaa111\",\n      \"snippet\": \"Junior Java developer, 2 years experience, Spring Boot, MySQL\"\n    },\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"snippet\": \"Test Architect with 13+ years, RAG, DeepEval, MCP, Agentic QA System, LLM Evaluation, Azure DevOps\"\n    },\n    {\n      \"resumeId\": \"bbb222\",\n      \"snippet\": \"Data analyst, Python, pandas, Tableau, 5 years, no AI experience\"\n    }\n  ],\n  \"topK\": 3\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/rerank",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "rerank"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const inputIds = ['aaa111', '691db80aa895776f97b6eca6', 'bbb222'];",
+              "pm.test('results length <= 3', () => pm.expect(body.results.length).to.be.at.most(3));",
+              "// No hallucinated IDs",
+              "body.results.forEach(r => {",
+              "  pm.test(`resumeId ${r.resumeId} is from input`, () => pm.expect(inputIds).to.include(r.resumeId));",
+              "});",
+              "// Ranks must be unique and ascending",
+              "const ranks = body.results.map(r => r.rank);",
+              "const uniqueRanks = [...new Set(ranks)];",
+              "pm.test('ranks are unique', () => pm.expect(uniqueRanks.length).to.eql(ranks.length));",
+              "// Best match for RAG query should be the RAG resume",
+              "if (body.results.length > 0) {",
+              "  pm.test('rank 1 is the RAG/LLM candidate', () => {",
+              "    const top = body.results.find(r => r.rank === 1);",
+              "    pm.expect(top?.resumeId).to.eql('691db80aa895776f97b6eca6');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/rerank — empty query (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\",\n  \"candidates\": [\n    { \"resumeId\": \"abc\", \"snippet\": \"some resume\" }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/rerank",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "rerank"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_SEARCH_QUERY', () => pm.expect(body.errorCode).to.eql('INVALID_SEARCH_QUERY'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/rerank — empty candidates array (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior RAG engineer\",\n  \"candidates\": []\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/rerank",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "rerank"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_CANDIDATES', () => pm.expect(body.errorCode).to.eql('INVALID_CANDIDATES'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/rerank — malformed candidate (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior RAG engineer\",\n  \"candidates\": [\n    { \"resumeId\": \"\", \"snippet\": \"some snippet\" }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/rerank",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "rerank"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_CANDIDATE_SHAPE', () => pm.expect(body.errorCode).to.eql('INVALID_CANDIDATE_SHAPE'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

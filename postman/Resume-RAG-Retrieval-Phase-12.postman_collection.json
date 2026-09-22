@@ -1,0 +1,217 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 12: Candidate Summarization",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/search/summarize — short style",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Senior QA architect with GenAI RAG and evaluation experience\",\n  \"candidate\": {\n    \"resumeId\": \"691db80aa895776f97b6eca6\",\n    \"snippet\": \"13+ years experience | Test Architect & Senior Agentic Test Engineer | RAG, DeepEval, MCP, Agentic QA System, LLM Evaluation, Azure DevOps\"\n  },\n  \"style\": \"short\",\n  \"maxTokens\": 150\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('resumeId matches input', () => pm.expect(body.resumeId).to.eql('691db80aa895776f97b6eca6'));",
+              "pm.test('summary is a non-empty string', () => {",
+              "  pm.expect(body.summary).to.be.a('string');",
+              "  pm.expect(body.summary.length).to.be.greaterThan(0);",
+              "});",
+              "pm.test('summary references relevant experience', () => {",
+              "  const s = body.summary.toLowerCase();",
+              "  const relevant = s.includes('rag') || s.includes('qa') || s.includes('architect') || s.includes('llm') || s.includes('test');",
+              "  pm.expect(relevant).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"resumeId\": \"691db80aa895776f97b6eca6\",\n  \"summary\": \"Strong fit for a senior QA/GenAI architecture role, with extensive automation leadership plus direct RAG, DeepEval, MCP and agentic QA experience.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search/summarize — detailed style",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Senior QA architect with GenAI RAG and evaluation experience\",\n  \"candidate\": {\n    \"resumeId\": \"691db80aa895776f97b6eca6\",\n    \"snippet\": \"13+ years experience | Test Architect & Senior Agentic Test Engineer | RAG, DeepEval, MCP, Agentic QA System, LLM Evaluation, Azure DevOps\"\n  },\n  \"style\": \"detailed\",\n  \"maxTokens\": 300\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('resumeId matches', () => pm.expect(body.resumeId).to.eql('691db80aa895776f97b6eca6'));",
+              "pm.test('summary is a non-empty string', () => pm.expect(body.summary.length).to.be.greaterThan(50));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/summarize — default style (no style field)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Senior QA architect with GenAI RAG and evaluation experience\",\n  \"candidate\": {\n    \"resumeId\": \"691db80aa895776f97b6eca6\",\n    \"snippet\": \"13+ years experience | Test Architect | RAG, DeepEval, MCP, LLM Evaluation\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('summary returned with default short style', () => pm.expect(body.summary).to.be.a('string'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/summarize — empty query (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\",\n  \"candidate\": {\n    \"resumeId\": \"691db80aa895776f97b6eca6\",\n    \"snippet\": \"some snippet\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_SEARCH_QUERY', () => pm.expect(body.errorCode).to.eql('INVALID_SEARCH_QUERY'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/summarize — missing candidate (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior RAG engineer\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_CANDIDATE', () => pm.expect(body.errorCode).to.eql('INVALID_CANDIDATE'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/summarize — invalid style (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior RAG engineer\",\n  \"candidate\": {\n    \"resumeId\": \"abc\",\n    \"snippet\": \"some snippet\"\n  },\n  \"style\": \"verbose\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/summarize",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "summarize"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_STYLE', () => pm.expect(body.errorCode).to.eql('INVALID_STYLE'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

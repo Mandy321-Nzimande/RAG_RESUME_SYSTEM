@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 12",
+    "description": "Verification requests for MongoDB resume storage.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Store - Invalid Embedding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fileName\": \"resume.pdf\",\n  \"resume\": {\n    \"name\": \"Rajesh Mohan Kumar\",\n    \"role\": \"Test Architect\",\n    \"skills\": [\"RAG\", \"Python\"]\n  },\n  \"rawText\": \"Resume content\",\n  \"embedding\": [0.01, -0.03, 0.004]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/store",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "store"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Invalid embedding is rejected', function () { pm.response.to.have.status(400); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('INVALID_STORAGE_INPUT'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Store - Valid Document",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.variables.set('embedding', JSON.stringify(Array.from({ length: 1024 }, function (_, index) { return index / 1000; })));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fileName\": \"Rajesh Mohan Kumar_Test Architect.pdf\",\n  \"resume\": {\n    \"name\": \"Rajesh Mohan Kumar\",\n    \"role\": \"Test Architect & Senior Agentic Test Engineer\",\n    \"skills\": [\"RAG\", \"DeepEval\", \"MCP (Model Context Protocol)\"]\n  },\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect & Senior Agentic Test Engineer\\n13+ years of experience\",\n  \"embedding\": {{embedding}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/store",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "store"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Resume is stored', function () { pm.response.to.have.status(201); var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.message).to.eql('Resume stored successfully'); pm.expect(body.resumeId).to.be.a('string').and.not.empty; });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

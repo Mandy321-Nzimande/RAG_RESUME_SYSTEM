@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 13",
+    "description": "Verification request for the full resume ingestion pipeline.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "resumeFile",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Ingest",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "{{resumeFile}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Resume ingestion completed', function () { pm.response.to.have.status(201); var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.message).to.eql('Resume ingestion completed'); pm.expect(body.resumeId).to.be.a('string').and.not.empty; pm.expect(body.data.skillsCount).to.be.a('number'); pm.expect(body.data.embeddingModel).to.eql('mistral-embed'); pm.expect(body.data.embeddingDimension).to.eql(1024); pm.expect(body.timings.totalMs).to.be.a('number'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Ingest - Missing File",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Missing file is rejected', function () { pm.response.to.have.status(400); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('FILE_REQUIRED'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

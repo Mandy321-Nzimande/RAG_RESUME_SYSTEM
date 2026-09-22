@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 3: Query Embedding",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/embeddings — happy path",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"mistral-embed\",\n  \"input\": \"senior agentic QA architect with RAG, DeepEval and MCP experience\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/embeddings",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "embeddings"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('embedding is an array', () => pm.expect(body.embedding).to.be.an('array'));",
+              "pm.test('dimension is 1024', () => pm.expect(body.dimension).to.eql(1024));",
+              "pm.test('model is returned', () => pm.expect(body.model).to.be.a('string'));"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"embedding\": [0.012, -0.044, 0.008, \"...(1024 floats)\"],\n  \"model\": \"mistral-embed\",\n  \"dimension\": 1024\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/embeddings — empty input (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"mistral-embed\",\n  \"input\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/embeddings",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "embeddings"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode is INVALID_EMBEDDING_INPUT', () => pm.expect(body.errorCode).to.eql('INVALID_EMBEDDING_INPUT'));"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "400 Bad Request — example",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"success\": false,\n  \"errorCode\": \"INVALID_EMBEDDING_INPUT\",\n  \"message\": \"input is required and must be a non-empty string\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/embeddings — missing input field (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"mistral-embed\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/embeddings",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "embeddings"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode is INVALID_EMBEDDING_INPUT', () => pm.expect(body.errorCode).to.eql('INVALID_EMBEDDING_INPUT'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

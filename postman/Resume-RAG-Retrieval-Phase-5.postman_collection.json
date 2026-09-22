@@ -1,0 +1,191 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 5: BM25 Search",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/search/bm25 — happy path with filter",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"agentic QA architect RAG MCP DeepEval\",\n  \"topK\": 20,\n  \"filters\": {\n    \"minYearsExperience\": 10\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/bm25",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "bm25"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('mode is bm25', () => pm.expect(body.mode).to.eql('bm25'));",
+              "pm.test('results is an array', () => pm.expect(body.results).to.be.an('array'));",
+              "pm.test('count matches results length', () => pm.expect(body.count).to.eql(body.results.length));",
+              "if (body.results.length > 0) {",
+              "  const r = body.results[0];",
+              "  pm.test('result has resumeId', () => pm.expect(r.resumeId).to.be.a('string'));",
+              "  pm.test('result has score', () => pm.expect(r.score).to.be.a('number'));",
+              "  pm.test('matchedSkills is an array', () => pm.expect(r.matchedSkills).to.be.an('array'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"mode\": \"bm25\",\n  \"query\": \"agentic QA architect RAG MCP DeepEval\",\n  \"count\": 1,\n  \"results\": [\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"name\": \"Rajesh Mohan Kumar\",\n      \"role\": \"Test Architect & Senior Agentic Test Engineer\",\n      \"score\": 8.41,\n      \"matchedSkills\": [\"RAG\", \"DeepEval\", \"MCP (Model Context Protocol)\"]\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search/bm25 — no filter",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"senior QA engineer automation testing\",\n  \"topK\": 10\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/bm25",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "bm25"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('mode is bm25', () => pm.expect(body.mode).to.eql('bm25'));",
+              "pm.test('results is array', () => pm.expect(body.results).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/bm25 — empty query (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/bm25",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "bm25"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_SEARCH_QUERY', () => pm.expect(body.errorCode).to.eql('INVALID_SEARCH_QUERY'));"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "400 Bad Request — example",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"success\": false,\n  \"errorCode\": \"INVALID_SEARCH_QUERY\",\n  \"message\": \"Search query is required\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search/bm25 — invalid minYearsExperience (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG engineer\",\n  \"filters\": {\n    \"minYearsExperience\": -5\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/bm25",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "bm25"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_FILTER', () => pm.expect(body.errorCode).to.eql('INVALID_FILTER'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/bm25 — high minYearsExperience (expect 0 results)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG engineer\",\n  \"topK\": 20,\n  \"filters\": {\n    \"minYearsExperience\": 99\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/bm25",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "bm25"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('count is 0', () => pm.expect(body.count).to.eql(0));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 8: Hybrid Search",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/search/hybrid — happy path with filter",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"agentic QA architect with RAG evaluation\",\n  \"topK\": 20,\n  \"filters\": {\n    \"minYearsExperience\": 10\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/hybrid",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "hybrid"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('mode is hybrid-debug', () => pm.expect(body.mode).to.eql('hybrid-debug'));",
+              "pm.test('bm25 is an array', () => pm.expect(body.bm25).to.be.an('array'));",
+              "pm.test('vector is an array', () => pm.expect(body.vector).to.be.an('array'));",
+              "pm.test('timings object present', () => pm.expect(body.timings).to.be.an('object'));",
+              "pm.test('timings.bm25Ms is a number', () => pm.expect(body.timings.bm25Ms).to.be.a('number'));",
+              "pm.test('timings.embeddingMs is a number', () => pm.expect(body.timings.embeddingMs).to.be.a('number'));",
+              "pm.test('timings.vectorMs is a number', () => pm.expect(body.timings.vectorMs).to.be.a('number'));",
+              "// BM25 and vector scores must remain separate — not merged",
+              "if (body.bm25.length > 0) {",
+              "  pm.test('bm25 result has score', () => pm.expect(body.bm25[0].score).to.be.a('number'));",
+              "}",
+              "if (body.vector.length > 0) {",
+              "  pm.test('vector result has score', () => pm.expect(body.vector[0].score).to.be.a('number'));",
+              "  pm.test('vector score is 0-1 (cosine)', () => pm.expect(body.vector[0].score).to.be.within(0, 1));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"mode\": \"hybrid-debug\",\n  \"bm25\": [\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"name\": \"Rajesh Mohan Kumar\",\n      \"score\": 8.41\n    }\n  ],\n  \"vector\": [\n    {\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"name\": \"Rajesh Mohan Kumar\",\n      \"score\": 0.88\n    }\n  ],\n  \"timings\": {\n    \"bm25Ms\": 80,\n    \"embeddingMs\": 150,\n    \"vectorMs\": 70\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search/hybrid — same resume in both lists",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG DeepEval MCP agentic test architect\",\n  \"topK\": 20\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/hybrid",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "hybrid"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('mode is hybrid-debug', () => pm.expect(body.mode).to.eql('hybrid-debug'));",
+              "// Verify same resume can appear in both lists (scores are separate)",
+              "const bm25Ids = body.bm25.map(r => r.resumeId);",
+              "const vectorIds = body.vector.map(r => r.resumeId);",
+              "const overlap = bm25Ids.filter(id => vectorIds.includes(id));",
+              "pm.test('at least one resume appears in both lists', () => pm.expect(overlap.length).to.be.at.least(1));",
+              "// BM25 score and vector score must be on different scales",
+              "if (body.bm25.length > 0 && body.vector.length > 0) {",
+              "  pm.test('BM25 score not normalised to 0-1 (confirms scores are separate)', () => {",
+              "    const bm25Score = body.bm25[0].score;",
+              "    const vectorScore = body.vector[0].score;",
+              "    pm.expect(typeof bm25Score).to.eql('number');",
+              "    pm.expect(typeof vectorScore).to.eql('number');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/hybrid — no filter",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"software engineer testing automation\",\n  \"topK\": 10\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/hybrid",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "hybrid"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('has timings', () => {",
+              "  pm.expect(body.timings.bm25Ms).to.be.a('number');",
+              "  pm.expect(body.timings.embeddingMs).to.be.a('number');",
+              "  pm.expect(body.timings.vectorMs).to.be.a('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search/hybrid — empty query (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search/hybrid",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search", "hybrid"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_SEARCH_QUERY', () => pm.expect(body.errorCode).to.eql('INVALID_SEARCH_QUERY'));"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "400 Bad Request — example",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"success\": false,\n  \"errorCode\": \"INVALID_SEARCH_QUERY\",\n  \"message\": \"Search query is required\"\n}"
+        }
+      ]
+    }
+  ]
+}

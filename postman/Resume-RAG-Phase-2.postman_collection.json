@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 2",
+    "description": "Verification requests for MongoDB connectivity.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET Database Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/health/db",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "health", "db"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200 or 503', function () { pm.expect([200, 503]).to.include(pm.response.code); });",
+              "pm.test('MongoDB status payload is present', function () { var body = pm.response.json(); pm.expect(body.database).to.eql('mongodb'); pm.expect(body).to.have.property('connected'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

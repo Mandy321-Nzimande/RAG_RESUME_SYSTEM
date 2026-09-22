@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 4",
+    "description": "Verification requests for secure PDF resume uploads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Upload - Valid PDF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "upload"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Upload succeeded', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.message).to.eql('Resume uploaded successfully'); pm.expect(body.file.mimeType).to.eql('application/pdf'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Upload - Missing File",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": []
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "upload"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('Missing file is rejected', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('MISSING_FILE'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Upload - Invalid File Type",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "upload"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('Invalid file type is rejected', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('INVALID_FILE_TYPE'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

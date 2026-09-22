@@ -1,0 +1,191 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 14",
+    "description": "Verification requests for stable ingestion error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "validResumeFile",
+      "value": ""
+    },
+    {
+      "key": "invalidFile",
+      "value": ""
+    },
+    {
+      "key": "largeResumeFile",
+      "value": ""
+    },
+    {
+      "key": "emptyResumeFile",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Ingest - Missing File",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Missing file returns FILE_REQUIRED', function () { pm.response.to.have.status(400); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('FILE_REQUIRED'); pm.expect(body.message).to.eql('Resume PDF is required'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Ingest - Invalid File Type",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "{{invalidFile}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Invalid file type returns 415', function () { pm.response.to.have.status(415); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('INVALID_FILE_TYPE'); pm.expect(body.message).to.eql('Only PDF files are allowed'); });",
+              "pm.test('Request ID is included in the error', function () { var body = pm.response.json(); pm.expect(body.requestId).to.be.a('string').and.not.empty; pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Ingest - File Too Large",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "{{largeResumeFile}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Oversized file returns 413', function () { pm.response.to.have.status(413); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('FILE_TOO_LARGE'); pm.expect(body.message).to.eql('Resume exceeds maximum upload size'); });",
+              "pm.test('Request ID is included in the error', function () { var body = pm.response.json(); pm.expect(body.requestId).to.be.a('string').and.not.empty; pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Ingest - Empty Resume",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "{{emptyResumeFile}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "ingest"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Empty resume returns extraction failure', function () { pm.response.to.have.status(422); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('RESUME_EXTRACTION_FAILED'); pm.expect(body.message).to.eql('Resume extraction failed'); });",
+              "pm.test('Request ID is included in the error', function () { var body = pm.response.json(); pm.expect(body.requestId).to.be.a('string').and.not.empty; pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Embed - Provider Failure Contract",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"skills\": [\"Python\"],\n  \"rawText\": \"Resume content\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/embed",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "embed"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Embedding configuration failure is stable', function () { pm.response.to.have.status(503); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.be.oneOf(['EMBEDDING_NOT_CONFIGURED', 'EMBEDDING_FAILED']); pm.expect(body.message).to.be.a('string'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

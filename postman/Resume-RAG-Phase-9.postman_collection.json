@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 9",
+    "description": "Verification requests for structured algorithmic resume parsing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Parse - Structured Resume",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect & Senior Agentic Test Engineer\\nTestleaf Software Solutions Private Limited\\nB.Tech - Information Technology\\n13+ years of experience\\nSkills: Selenium WebDriver, Core Java, C#, Python, REST Assured, Postman, RAG, DeepEval, MCP (Model Context Protocol)\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/parse",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "parse"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Resume is parsed structurally', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.resume.name).to.eql('Rajesh Mohan Kumar'); pm.expect(body.resume.role).to.eql('Test Architect & Senior Agentic Test Engineer'); pm.expect(body.resume.totalExperience).to.eql(13); pm.expect(body.resume.skills).to.include.members(['Selenium', 'Python', 'RAG', 'DeepEval', 'MCP (Model Context Protocol)']); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

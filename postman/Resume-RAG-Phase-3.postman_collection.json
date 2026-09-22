@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 3",
+    "description": "Verification request for the resume ingestion module readiness route.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET Resume Ingestion Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Ingestion module is ready', function () { var body = pm.response.json(); pm.expect(body.status).to.eql('ok'); pm.expect(body.module).to.eql('resume-ingestion'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

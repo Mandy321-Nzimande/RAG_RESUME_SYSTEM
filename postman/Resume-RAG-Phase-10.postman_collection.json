@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 10",
+    "description": "Verification requests for the optional schema-validated LLM resume parser.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST LLM Resume Parse - Disabled By Default",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect\\nPython\\nRAG\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/llm-parse",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "llm-parse"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('LLM parser is disabled without opt-in', function () { pm.response.to.have.status(503); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('LLM_PARSER_DISABLED'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST LLM Resume Parse - Enabled",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect\\nPython\\nRAG\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/llm-parse",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "llm-parse"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Enabled parser returns validated JSON', function () { pm.response.to.have.status(200); var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.parser).to.eql('llm'); pm.expect(body.resume.skills).to.be.an('array'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

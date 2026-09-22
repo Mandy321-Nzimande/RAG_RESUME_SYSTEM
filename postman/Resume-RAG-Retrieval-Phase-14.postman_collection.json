@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Resume RAG Retrieval — Phase 14: Full End-to-End Search",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST /v1/search — full pipeline with summarize",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Senior agentic QA architect with RAG, MCP, DeepEval, API automation and Azure DevOps experience\",\n  \"filters\": {\n    \"minYearsExperience\": 10\n  },\n  \"options\": {\n    \"bm25TopK\": 20,\n    \"vectorTopK\": 20,\n    \"rerankTopN\": 10,\n    \"finalTopK\": 5,\n    \"summarize\": true,\n    \"summaryStyle\": \"short\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('query echoed back', () => pm.expect(body.query).to.be.a('string'));",
+              "pm.test('results is an array', () => pm.expect(body.results).to.be.an('array'));",
+              "pm.test('at least one result', () => pm.expect(body.results.length).to.be.at.least(1));",
+              "pm.test('degraded is boolean', () => pm.expect(body.degraded).to.be.a('boolean'));",
+              "pm.test('warnings is array', () => pm.expect(body.warnings).to.be.an('array'));",
+              "pm.test('timings present', () => {",
+              "  pm.expect(body.timings).to.be.an('object');",
+              "  pm.expect(body.timings.totalMs).to.be.a('number');",
+              "});",
+              "if (body.results.length > 0) {",
+              "  const top = body.results[0];",
+              "  pm.test('rank 1 result has resumeId', () => pm.expect(top.resumeId).to.be.a('string'));",
+              "  pm.test('rank 1 result has rank: 1', () => pm.expect(top.rank).to.eql(1));",
+              "  pm.test('sources is an array', () => pm.expect(top.sources).to.be.an('array'));",
+              "  pm.test('summary present (summarize=true)', () => pm.expect(top.summary).to.be.a('string'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — example",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"query\": \"Senior agentic QA architect with RAG, MCP, DeepEval, API automation and Azure DevOps experience\",\n  \"results\": [\n    {\n      \"rank\": 1,\n      \"resumeId\": \"691db80aa895776f97b6eca6\",\n      \"name\": \"Rajesh Mohan Kumar\",\n      \"role\": \"Test Architect & Senior Agentic Test Engineer\",\n      \"company\": \"Testleaf Software Solutions Private Limited\",\n      \"skills\": [\"RAG\", \"DeepEval\", \"MCP (Model Context Protocol)\", \"Postman\", \"REST Assured\", \"Azure DevOps\"],\n      \"sources\": [\"bm25\", \"vector\"],\n      \"relevanceScore\": 0.96,\n      \"reason\": \"Strong match: 13+ yrs QA, direct RAG/DeepEval/MCP/Azure DevOps experience.\",\n      \"summary\": \"Strong fit for senior agentic QA architecture, combining long-term automation experience with RAG, LLM evaluation, MCP and enterprise governance.\"\n    }\n  ],\n  \"degraded\": false,\n  \"warnings\": [],\n  \"timings\": {\n    \"embeddingMs\": 150,\n    \"bm25Ms\": 85,\n    \"vectorMs\": 75,\n    \"rerankMs\": 420,\n    \"summarizeMs\": 210,\n    \"totalMs\": 850\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "POST /v1/search — minimal (no options, no filter)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"Senior QA architect with RAG, DeepEval and MCP experience\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('results is array', () => pm.expect(body.results).to.be.an('array'));",
+              "pm.test('no summary (summarize not requested)', () => {",
+              "  body.results.forEach(r => pm.expect(r.summary).to.be.undefined);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search — sources contain bm25 and/or vector",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG DeepEval MCP agentic test architect\",\n  \"options\": {\n    \"bm25TopK\": 20,\n    \"vectorTopK\": 20,\n    \"rerankTopN\": 5,\n    \"finalTopK\": 3,\n    \"summarize\": false\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "if (body.results.length > 0) {",
+              "  const top = body.results[0];",
+              "  pm.test('sources contains bm25 and/or vector', () => {",
+              "    const validSources = top.sources.every(s => ['bm25','vector'].includes(s));",
+              "    pm.expect(validSources).to.be.true;",
+              "  });",
+              "  pm.test('timings all present', () => {",
+              "    const t = body.timings;",
+              "    pm.expect(t.embeddingMs).to.be.a('number');",
+              "    pm.expect(t.bm25Ms).to.be.a('number');",
+              "    pm.expect(t.vectorMs).to.be.a('number');",
+              "    pm.expect(t.rerankMs).to.be.a('number');",
+              "    pm.expect(t.totalMs).to.be.a('number');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search — empty query (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_SEARCH_QUERY', () => pm.expect(body.errorCode).to.eql('INVALID_SEARCH_QUERY'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search — invalid filter (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG engineer\",\n  \"filters\": {\n    \"minYearsExperience\": -1\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_FILTER', () => pm.expect(body.errorCode).to.eql('INVALID_FILTER'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /v1/search — invalid summaryStyle (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"RAG engineer\",\n  \"options\": {\n    \"summarize\": true,\n    \"summaryStyle\": \"bullet\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/search",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "search"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test('errorCode INVALID_STYLE', () => pm.expect(body.errorCode).to.eql('INVALID_STYLE'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

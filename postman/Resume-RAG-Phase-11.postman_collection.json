@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "Resume RAG - Phase 11",
+    "description": "Verification requests for Mistral resume embeddings.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST Resume Embed - Missing Configuration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Rajesh Mohan Kumar\",\n  \"role\": \"Test Architect & Senior Agentic Test Engineer\",\n  \"skills\": [\"RAG\", \"DeepEval\", \"MCP (Model Context Protocol)\"],\n  \"company\": \"Testleaf Software Solutions Private Limited\",\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect & Senior Agentic Test Engineer\\n13+ years of experience\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/embed",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "embed"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Embedding configuration is required', function () { pm.response.to.have.status(503); var body = pm.response.json(); pm.expect(body.success).to.eql(false); pm.expect(body.errorCode).to.eql('EMBEDDING_NOT_CONFIGURED'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Resume Embed - Configured",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Rajesh Mohan Kumar\",\n  \"role\": \"Test Architect & Senior Agentic Test Engineer\",\n  \"skills\": [\"RAG\", \"DeepEval\", \"MCP (Model Context Protocol)\"],\n  \"company\": \"Testleaf Software Solutions Private Limited\",\n  \"rawText\": \"Rajesh Mohan Kumar\\nTest Architect & Senior Agentic Test Engineer\\n13+ years of experience\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/resume/embed",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "resume", "embed"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Embedding response has the configured dimension', function () { pm.response.to.have.status(200); var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.model).to.eql('mistral-embed'); pm.expect(body.dimension).to.eql(1024); pm.expect(body.embedding).to.be.an('array').with.lengthOf(1024); pm.expect(body.embedding[0]).to.be.a('number'); });",
+              "pm.test('Request ID header exists', function () { pm.expect(pm.response.headers.has('x-request-id')).to.eql(true); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
