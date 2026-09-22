@@ -57,3 +57,18 @@ Use `.env.example` as the backend configuration template. Do not commit `.env`, 
 ## API and verification
 
 The Postman collections in `postman/` cover the ingestion and retrieval phases. The retrieval module also contains focused service tests under `src/modules/retrieval/`.
+
+## Agent and MCP
+
+The agent endpoint is `POST /v1/agent/chat` with a body such as:
+
+```json
+{
+	"message": "Find a Python developer with machine learning experience",
+	"topK": 5
+}
+```
+
+It reuses the existing retrieval pipeline and returns an answer, candidate results, tools used, warnings, and optional external sources. Configure `WEB_SEARCH_API_KEY` to enable the Tavily-compatible fallback.
+
+The standalone Python MCP server is in `mcp_server/`. It exposes `search_candidates` and `web_search` over stdio and delegates candidate retrieval to the TypeScript API. See [mcp_server/README.md](mcp_server/README.md) for setup.

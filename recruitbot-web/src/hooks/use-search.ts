@@ -16,34 +16,56 @@ export function useSearch() {
     setSearching(true);
 
     try {
-      const data = await searchApi.search({
-        query: trimmed,
-        options: {
-          finalTopK: topK,
-          rerankTopN: Math.max(topK * 2, 10),
-          bm25TopK: 20,
-          vectorTopK: 20,
-          summarize: false, // disabled until LLM is confirmed working
-        },
-      });
+      const data = await searchApi.agentChat(trimmed, topK);
 
-      const durationMs = data.timings?.totalMs;
-      setResults(data.results, trimmed, durationMs ?? 0);
+      setResults(data.candidates, trimmed, 0);
+
+      addBotMessage(
+        createElement(
+          'div',
+          { className: 'flex flex-col gap-3' },
+          createElement('p', { className: 'text-text-primary' }, data.answer),
+          createElement(
+            'div',
+            { className: 'flex flex-wrap gap-2 text-xs text-text-muted' },
+            'Tools used:',
+            ...data.tools_used.map((tool) =>
+              createElement(
+                'span',
+                { key: tool, className: 'px-2 py-1 rounded-full bg-white/[0.06]' },
+                tool === 'search_candidates' ? 'Candidate search' : 'Web search'
+              )
+            )
+          ),
+          data.sources.length > 0
+            ? createElement(
+                'div',
+                { className: 'flex flex-col gap-1 text-xs text-text-muted' },
+                createElement('span', null, 'External sources:'),
+                ...data.sources.map((source) =>
+                  createElement(
+                    'a',
+                    { key: source.url, href: source.url, target: '_blank', rel: 'noreferrer', className: 'text-score-vector hover:underline' },
+                    source.title
+                  )
+                )
+              )
+            : null
+        )
+      );
 
       addBotMessage(
         createElement(ResultsList, {
-          results: data.results,
+          results: data.candidates,
           searchMode,
-          durationMs,
+          durationMs: undefined,
           query: trimmed,
         })
       );
 
       // Only show a warning for critical failures (both search strategies failed)
       // LLM rerank/summarize failures are handled gracefully — results still shown
-      const criticalWarnings = data.warnings.filter(
-        (w) => w === 'BM25_FAILED' || w === 'VECTOR_FAILED' || w === 'SEARCH_UNAVAILABLE'
-      );
+      const criticalWarnings = data.warnings;
       if (criticalWarnings.length > 0) {
         addBotMessage(
           createElement(

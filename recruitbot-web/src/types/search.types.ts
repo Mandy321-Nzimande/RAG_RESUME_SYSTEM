@@ -42,3 +42,18 @@ export interface SearchResponse {
     totalMs?: number;
   };
 }
+
+export interface AgentSource {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface AgentResponse {
+  answer: string;
+  candidates: SearchResult[];
+  tools_used: string[];
+  sources: AgentSource[];
+  degraded: boolean;
+  warnings: string[];
+}

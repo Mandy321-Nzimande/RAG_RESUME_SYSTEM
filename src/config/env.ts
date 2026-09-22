@@ -18,6 +18,8 @@ export const env = {
   useLlmParser: process.env.USE_LLM_PARSER === "true",
   groqApiKey: process.env.GROQ_API_KEY,
   groqModel: process.env.GROQ_MODEL ?? "meta-llama/llama-4-scout-17b-16e-instruct",
+  webSearchApiKey: process.env.WEB_SEARCH_API_KEY,
+  webSearchApiUrl: process.env.WEB_SEARCH_API_URL ?? "https://api.tavily.com/search",
   maxUploadSizeMb: parsePositiveNumber(process.env.MAX_UPLOAD_SIZE_MB, 5),
   retrievalDefaultTopK: parsePositiveNumber(process.env.RETRIEVAL_DEFAULT_TOP_K, 20),
   rerankDefaultTopN: parsePositiveNumber(process.env.RERANK_DEFAULT_TOP_N, 10),

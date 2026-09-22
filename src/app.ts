@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { pingDatabase } from "./config/database";
 import { ingestionRoutes } from "./modules/ingestion/routes/ingestionRoutes";
 import { retrievalRoutes } from "./modules/retrieval/routes/retrievalRoutes";
+import { agentRoutes } from "./modules/agent/routes/agentRoutes";
 
 export const app = express();
 
@@ -45,5 +46,6 @@ app.get("/v1/health/db", async (_request, response) => {
 
 app.use("/v1", ingestionRoutes);
 app.use("/v1", retrievalRoutes);
+app.use("/v1", agentRoutes);
 
 app.use(errorHandler);

@@ -1,9 +1,17 @@
 import apiClient from './client';
-import { SearchRequest, SearchResponse } from '@/types/search.types';
+import { AgentResponse, SearchRequest, SearchResponse } from '@/types/search.types';
 
 export const searchApi = {
   async search(params: SearchRequest): Promise<SearchResponse> {
     const response = await apiClient.post<SearchResponse>('/v1/search', params);
+    return response.data;
+  },
+
+  async agentChat(message: string, topK: number): Promise<AgentResponse> {
+    const response = await apiClient.post<AgentResponse>('/v1/agent/chat', {
+      message,
+      topK,
+    });
     return response.data;
   },
 

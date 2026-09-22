@@ -57,4 +57,14 @@ describe("HTTP integration contracts", () => {
 		expect(storeResponse.status).toBe(400);
 		expect(storeResponse.body.errorCode).toBe("INVALID_STORAGE_INPUT");
 	});
+
+	it("rejects an empty agent message", async () => {
+		const response = await request(app).post("/v1/agent/chat").send({ message: "" });
+
+		expect(response.status).toBe(400);
+		expect(response.body).toMatchObject({
+			success: false,
+			errorCode: "INVALID_AGENT_MESSAGE"
+		});
+	});
 });
