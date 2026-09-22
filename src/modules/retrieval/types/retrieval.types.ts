@@ -8,6 +8,7 @@ export interface SearchCandidate {
   skills?: string[];
   snippet?: string;
   rawText?: string;
+  email?: string;
   bm25Score?: number;
   vectorScore?: number;
   location?: string;

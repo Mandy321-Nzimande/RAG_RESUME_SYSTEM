@@ -68,7 +68,7 @@ export class SearchService {
 
   async filterCandidates(filters: SearchFilters = {}, topK = env.retrievalDefaultTopK): Promise<SearchCandidate[]> {
     const documents = await this.repo.filterCandidates(filters, Math.min(Math.max(Math.floor(topK), 1), 100));
-    return documents.map((doc) => mapBm25Result(doc, 0));
+    return deduplicateCandidates(documents.map((doc) => mapBm25Result(doc, 0)), []);
   }
 
   // ─── BM25 ──────────────────────────────────────────────────────────────────
