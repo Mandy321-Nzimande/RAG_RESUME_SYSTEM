@@ -66,6 +66,11 @@ export class SearchService {
     this.repo = new ResumeRepository(db);
   }
 
+  async filterCandidates(filters: SearchFilters = {}, topK = env.retrievalDefaultTopK): Promise<SearchCandidate[]> {
+    const documents = await this.repo.filterCandidates(filters, Math.min(Math.max(Math.floor(topK), 1), 100));
+    return documents.map((doc) => mapBm25Result(doc, 0));
+  }
+
   // ─── BM25 ──────────────────────────────────────────────────────────────────
 
   async bm25Search(
@@ -165,6 +170,7 @@ export class SearchService {
     const vectorTopK = options.vectorTopK ?? env.retrievalDefaultTopK;
     const rerankTopN = options.rerankTopN ?? env.rerankDefaultTopN;
     const finalTopK = options.finalTopK ?? rerankTopN;
+    const minSimilarity = options.minSimilarity ?? env.minSimilarity;
     const summarize = options.summarize ?? false;
     const summaryStyle = options.summaryStyle ?? "short";
 
@@ -223,8 +229,12 @@ export class SearchService {
         };
 
     // ── Step 2: Merge and deduplicate ─────────────────────────────────────
-    const merged = deduplicateCandidates(bm25Candidates, vectorCandidates);
-    const topCandidates = merged.slice(0, rerankTopN);
+    const relevantVectorCandidates = vectorCandidates.filter(
+      (candidate) => (candidate.vectorScore ?? 0) >= minSimilarity
+    );
+    const merged = deduplicateCandidates(bm25Candidates, relevantVectorCandidates);
+    const constrained = merged.filter((candidate) => matchesHardConstraints(candidate, filters.hardConstraints));
+    const topCandidates = constrained.slice(0, rerankTopN);
 
     // ── Step 3: LLM re-rank ───────────────────────────────────────────────
     const rerankStart = Date.now();
@@ -246,8 +256,10 @@ export class SearchService {
           name: candidate?.name,
           role: candidate?.role,
           company: candidate?.company,
+          totalExperience: candidate?.totalExperience,
           skills: candidate?.skills,
           sources: candidate?.sources ?? [],
+          retrievalScore: candidate?.vectorScore,
           relevanceScore: r.relevanceScore,
           reason: r.reason
         };
@@ -273,8 +285,10 @@ export class SearchService {
           name: c.name,
           role: c.role,
           company: c.company,
+          totalExperience: c.totalExperience,
           skills: c.skills,
-          sources: c.sources
+          sources: c.sources,
+          retrievalScore: c.vectorScore
         }));
     }
 
@@ -334,4 +348,29 @@ export class SearchService {
       }
     };
   }
+}
+
+function matchesHardConstraints(
+  candidate: SearchCandidate,
+  constraints: SearchFilters["hardConstraints"] = {}
+): boolean {
+  for (const [field, criteria] of Object.entries(constraints)) {
+    const value = field === "experience_years"
+      ? candidate.totalExperience
+      : field === "certification"
+      ? candidate.certification ?? candidate.rawText
+      : candidate[field as keyof SearchCandidate];
+
+    for (const [operator, expected] of Object.entries(criteria)) {
+      if (operator === "$eq" && field === "certification" && typeof value === "string" && typeof expected === "string") {
+        if (!value.toLowerCase().includes(expected.toLowerCase())) return false;
+      } else if (operator === "$eq" && value !== expected) return false;
+      if (operator === "$lt" && !(typeof value === "number" && typeof expected === "number" && value < expected)) return false;
+      if (operator === "$lte" && !(typeof value === "number" && typeof expected === "number" && value <= expected)) return false;
+      if (operator === "$gt" && !(typeof value === "number" && typeof expected === "number" && value > expected)) return false;
+      if (operator === "$gte" && !(typeof value === "number" && typeof expected === "number" && value >= expected)) return false;
+      if (operator === "$regex" && !(typeof value === "string" && value.toLowerCase().includes(String(expected).toLowerCase()))) return false;
+    }
+  }
+  return true;
 }

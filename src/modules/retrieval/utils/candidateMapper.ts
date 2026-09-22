@@ -40,6 +40,11 @@ export function mapBm25Result(
     company: doc.company,
     skills: doc.skills,
     snippet: buildSnippet(doc),
+    rawText: doc.rawText,
+    location: doc.location,
+    education: doc.education,
+    certification: doc.certification,
+    totalExperience: doc.totalExperience,
     bm25Score: score,
     sources: ["bm25"]
   };
@@ -59,6 +64,11 @@ export function mapVectorResult(
     company: doc.company,
     skills: doc.skills,
     snippet: buildSnippet(doc),
+    rawText: doc.rawText,
+    location: doc.location,
+    education: doc.education,
+    certification: doc.certification,
+    totalExperience: doc.totalExperience,
     vectorScore: score,
     sources: ["vector"]
   };

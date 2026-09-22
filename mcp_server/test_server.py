@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from server import search_candidates, web_search
+from server import filter_candidates, search_candidates, web_search
 
 
 class FakeResponse:
@@ -43,6 +43,10 @@ class McpToolTests(unittest.IsolatedAsyncioTestCase):
         with patch("server.WEB_SEARCH_API_KEY", None):
             result = await web_search("machine learning roles")
         self.assertEqual(result["error"], "WEB_SEARCH_NOT_CONFIGURED")
+
+    async def test_filter_requires_criteria(self):
+        result = await filter_candidates({})
+        self.assertEqual(result["error"], "INVALID_CRITERIA")
 
 
 if __name__ == "__main__":

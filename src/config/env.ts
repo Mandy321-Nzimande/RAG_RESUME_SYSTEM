@@ -7,6 +7,13 @@ const parsePositiveNumber = (value: string | undefined, fallback: number): numbe
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const parseUnitInterval = (value: string | undefined, fallback: number): number => {
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback;
+};
+
 export const env = {
   port: parsePositiveNumber(process.env.PORT, 3000),
   nodeEnv: process.env.NODE_ENV ?? "development",
@@ -23,5 +30,6 @@ export const env = {
   maxUploadSizeMb: parsePositiveNumber(process.env.MAX_UPLOAD_SIZE_MB, 5),
   retrievalDefaultTopK: parsePositiveNumber(process.env.RETRIEVAL_DEFAULT_TOP_K, 20),
   rerankDefaultTopN: parsePositiveNumber(process.env.RERANK_DEFAULT_TOP_N, 10),
-  searchP95TargetMs: parsePositiveNumber(process.env.SEARCH_P95_TARGET_MS, 5000)
+  searchP95TargetMs: parsePositiveNumber(process.env.SEARCH_P95_TARGET_MS, 5000),
+  minSimilarity: parseUnitInterval(process.env.MIN_SIMILARITY, 0.55)
 } as const;

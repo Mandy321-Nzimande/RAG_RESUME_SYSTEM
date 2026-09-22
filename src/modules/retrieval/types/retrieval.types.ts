@@ -7,8 +7,13 @@ export interface SearchCandidate {
   company?: string;
   skills?: string[];
   snippet?: string;
+  rawText?: string;
   bm25Score?: number;
   vectorScore?: number;
+  location?: string;
+  education?: string;
+  certification?: string;
+  totalExperience?: number;
   sources: ("bm25" | "vector")[];
 }
 
@@ -26,6 +31,7 @@ export interface RankedResult {
   relevanceScore?: number;
   reason?: string;
   summary?: string;
+  retrievalScore?: number;
 }
 
 // ─── Search request shapes ────────────────────────────────────────────────────
@@ -33,6 +39,8 @@ export interface RankedResult {
 export interface SearchFilters {
   minYearsExperience?: number;
   skills?: string[];
+  hardConstraints?: Record<string, Record<string, number | string | boolean>>;
+  resumeIds?: string[];
 }
 
 export interface SearchOptions {
@@ -42,6 +50,7 @@ export interface SearchOptions {
   finalTopK?: number;
   summarize?: boolean;
   summaryStyle?: "short" | "detailed";
+  minSimilarity?: number;
 }
 
 export interface SearchRequest {

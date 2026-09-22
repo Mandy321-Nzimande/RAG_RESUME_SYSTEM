@@ -71,4 +71,6 @@ The agent endpoint is `POST /v1/agent/chat` with a body such as:
 
 It reuses the existing retrieval pipeline and returns an answer, candidate results, tools used, warnings, and optional external sources. Configure `WEB_SEARCH_API_KEY` to enable the Tavily-compatible fallback.
 
+Hard-constraint queries run through exact candidate filtering first. If exact filtering returns no candidates, the agent stops without running unfiltered semantic search. Set `MIN_SIMILARITY` in `.env` to tune the default vector relevance cutoff of `0.55`.
+
 The standalone Python MCP server is in `mcp_server/`. It exposes `search_candidates` and `web_search` over stdio and delegates candidate retrieval to the TypeScript API. See [mcp_server/README.md](mcp_server/README.md) for setup.

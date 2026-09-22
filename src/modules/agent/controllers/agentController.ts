@@ -1,5 +1,7 @@
 import { RequestHandler } from "express";
 import { AgentService } from "../services/AgentService";
+import { SearchService } from "../../retrieval/services/SearchService";
+import { getDatabase } from "../../../config/database";
 
 const agentService = new AgentService();
 
@@ -43,5 +45,34 @@ export const agentChat: RequestHandler = async (request, response) => {
     response.status(200).json(await agentService.chat(message, filters, topK));
   } catch (error) {
     response.status(503).json({ success: false, errorCode: "AGENT_UNAVAILABLE", message: error instanceof Error ? error.message : "Agent unavailable" });
+  }
+};
+
+export const filterCandidates: RequestHandler = async (request, response) => {
+  const body = request.body as { criteria?: unknown; limit?: unknown };
+  if (!body.criteria || typeof body.criteria !== "object" || Array.isArray(body.criteria)) {
+    response.status(400).json({ success: false, errorCode: "INVALID_CRITERIA", message: "criteria must be an object" });
+    return;
+  }
+
+  const rawLimit = body.limit;
+  const limit = rawLimit === undefined
+    ? 20
+    : typeof rawLimit === "number" && Number.isFinite(rawLimit) && rawLimit > 0
+    ? Math.min(Math.floor(rawLimit), 100)
+    : null;
+  if (limit === null) {
+    response.status(400).json({ success: false, errorCode: "INVALID_LIMIT", message: "limit must be a positive integer no greater than 100" });
+    return;
+  }
+
+  try {
+    const results = await new SearchService(getDatabase()).filterCandidates(
+      { hardConstraints: body.criteria as Record<string, Record<string, number | string | boolean>> },
+      limit
+    );
+    response.status(200).json({ success: true, results, count: results.length });
+  } catch (error) {
+    response.status(503).json({ success: false, errorCode: "FILTER_UNAVAILABLE", message: error instanceof Error ? error.message : "Candidate filtering unavailable" });
   }
 };

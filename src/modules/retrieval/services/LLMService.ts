@@ -2,7 +2,8 @@ import { env } from "../../../config/env";
 import {
   RerankResultItem,
   SearchCandidate,
-  SummarizeRequest
+  SummarizeRequest,
+  RankedResult
 } from "../types/retrieval.types";
 
 // ─── Groq raw-fetch helper ────────────────────────────────────────────────────
@@ -69,6 +70,51 @@ function extractJson<T>(raw: string): T {
 // ─── LLMService ───────────────────────────────────────────────────────────────
 
 export class LLMService {
+  async verifyCandidateResults(
+    query: string,
+    constraints: Record<string, Record<string, number | string | boolean>>,
+    candidates: RankedResult[]
+  ): Promise<string[]> {
+    const allowedIds = new Set(candidates.map((candidate) => candidate.resumeId));
+    const candidateList = candidates.map((candidate) => ({
+      resumeId: candidate.resumeId,
+      name: candidate.name,
+      role: candidate.role,
+      company: candidate.company,
+      skills: candidate.skills,
+      totalExperience: candidate.totalExperience,
+      reason: candidate.reason
+    }));
+
+    const raw = await groqChat([
+      {
+        role: "system",
+        content: `You are RecruitBot, a resume search verification assistant.
+Check each retrieved candidate against the original query and hard constraints using ONLY the supplied profile data.
+Return ONLY valid JSON as an array of resumeId strings that clearly satisfy the stated criteria.
+Never invent facts, infer missing values, or return an ID not present in the supplied candidates.`
+      },
+      {
+        role: "user",
+        content: `Original query: ${query}
+Extracted constraints: ${JSON.stringify(constraints)}
+Retrieved candidates: ${JSON.stringify(candidateList)}
+
+Return only the IDs of candidates that clearly satisfy the query.`
+      }
+    ], 512);
+
+    let parsed: unknown;
+    try {
+      parsed = extractJson<unknown>(raw);
+    } catch {
+      throw new Error("GROUNDED_VERIFICATION_INVALID_JSON");
+    }
+
+    if (!Array.isArray(parsed)) throw new Error("GROUNDED_VERIFICATION_INVALID_SCHEMA");
+    return parsed.filter((id): id is string => typeof id === "string" && allowedIds.has(id));
+  }
+
   /**
    * Re-ranks candidates using the Groq LLM.
    * Returns only the IDs supplied — hallucinated IDs are filtered out.

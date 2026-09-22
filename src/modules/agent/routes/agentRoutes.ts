@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { agentChat } from "../controllers/agentController";
+import { agentChat, filterCandidates } from "../controllers/agentController";
 
 export const agentRoutes = Router();
 agentRoutes.post("/agent/chat", agentChat);
+agentRoutes.post("/agent/filter-candidates", filterCandidates);

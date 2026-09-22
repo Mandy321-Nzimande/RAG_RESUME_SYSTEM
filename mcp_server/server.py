@@ -75,6 +75,34 @@ async def search_candidates(
 
 
 @server.tool(
+    name="filter_candidates",
+    description=(
+        "Apply exact structured filtering to candidate fields. Use when a query contains "
+        "hard numeric, degree, certification, or location constraints."
+    ),
+)
+async def filter_candidates(criteria: dict[str, Any], limit: int = 20) -> dict[str, Any]:
+    if not isinstance(criteria, dict) or not criteria:
+        return {"success": False, "error": "INVALID_CRITERIA"}
+    if not isinstance(limit, int) or limit < 1 or limit > 100:
+        return {"success": False, "error": "INVALID_LIMIT"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                f"{RECRUITBOT_API_URL}/v1/agent/filter-candidates",
+                json={"criteria": criteria, "limit": limit},
+            )
+        if response.status_code >= 400:
+            return {"success": False, "error": "RECRUITBOT_API_UNAVAILABLE", "status": response.status_code}
+        payload = response.json()
+        results = payload.get("results", [])
+        return {"success": True, "results": results, "count": len(results)}
+    except (httpx.HTTPError, ValueError):
+        return {"success": False, "error": "RECRUITBOT_API_UNAVAILABLE"}
+
+
+@server.tool(
     name="web_search",
     description=(
         "Search external web information for industry, technology, role, or other context "

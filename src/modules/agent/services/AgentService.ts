@@ -1,6 +1,7 @@
 import { env } from "../../../config/env";
 import { getDatabase } from "../../../config/database";
 import { SearchService } from "../../retrieval/services/SearchService";
+import { LLMService } from "../../retrieval/services/LLMService";
 import { RankedResult, SearchFilters } from "../../retrieval/types/retrieval.types";
 import { parseRecruiterQuery, ParsedQuery } from "./QueryParser";
 
@@ -25,6 +26,7 @@ interface TavilyResponse {
 }
 
 const CANDIDATE_TERMS = /candidate|resume|cv|hire|developer|engineer|analyst|designer|manager|applicant|talent/i;
+const llmService = new LLMService();
 
 async function webSearch(query: string): Promise<WebSource[]> {
   if (!env.webSearchApiKey) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
@@ -66,9 +68,34 @@ export class AgentService {
     const parsedMinYears = experienceConstraint?.$gte;
     const effectiveFilters: SearchFilters = {
       ...filters,
+      hardConstraints: parsed_query.has_hard_constraints ? parsed_query.hard_constraints : undefined,
       ...(typeof parsedMinYears === "number" ? { minYearsExperience: parsedMinYears } : {})
     };
     const searchService = new SearchService(getDatabase());
+    const tools_used: string[] = [];
+
+    if (parsed_query.has_hard_constraints) {
+      const exactCandidates = await searchService.filterCandidates(
+        { hardConstraints: parsed_query.hard_constraints },
+        100
+      );
+      tools_used.push("filter_candidates");
+
+      if (exactCandidates.length === 0) {
+        return {
+          answer: `No candidates matched the stated criteria for "${query}".`,
+          candidates: [],
+          parsed_query,
+          tools_used,
+          sources: [],
+          degraded: false,
+          warnings: []
+        };
+      }
+
+      effectiveFilters.resumeIds = exactCandidates.map((candidate) => candidate.resumeId);
+    }
+
     const search = await searchService.endToEndSearch(parsed_query.semantic_query || query, effectiveFilters, {
       finalTopK: Math.min(Math.max(Math.floor(topK), 1), 20),
       rerankTopN: Math.min(Math.max(Math.floor(topK) * 2, 10), 50),
@@ -77,12 +104,26 @@ export class AgentService {
       summarize: false
     });
 
-    const tools_used = ["search_candidates"];
+    tools_used.push("search_candidates");
     const warnings = [...search.warnings];
     const candidateSearch = CANDIDATE_TERMS.test(query);
-    const needsExternalContext = !candidateSearch || search.results.length === 0;
+    let verifiedCandidates = search.results;
+    if (verifiedCandidates.length > 0) {
+      try {
+        const verifiedIds = await llmService.verifyCandidateResults(
+          query,
+          parsed_query.hard_constraints,
+          verifiedCandidates
+        );
+        verifiedCandidates = verifiedCandidates.filter((candidate) => verifiedIds.includes(candidate.resumeId));
+      } catch {
+        warnings.push("GROUNDED_VERIFICATION_FAILED");
+      }
+    }
+
+    const needsExternalContext = !candidateSearch || verifiedCandidates.length === 0;
     let sources: WebSource[] = [];
-    let answer = candidateAnswer(query, search.results);
+    let answer = candidateAnswer(query, verifiedCandidates);
 
     if (needsExternalContext && env.webSearchApiKey) {
       try {
@@ -90,7 +131,7 @@ export class AgentService {
         tools_used.push("web_search");
         if (!candidateSearch && sources.length > 0) {
           answer = `I found ${sources.length} external source${sources.length === 1 ? "" : "s"} with context for "${query}".`;
-        } else if (search.results.length === 0) {
+        } else if (verifiedCandidates.length === 0) {
           answer += " I also searched external sources for additional context.";
         }
       } catch {
@@ -102,7 +143,7 @@ export class AgentService {
 
     return {
       answer,
-      candidates: search.results,
+      candidates: verifiedCandidates,
       parsed_query,
       tools_used,
       sources,

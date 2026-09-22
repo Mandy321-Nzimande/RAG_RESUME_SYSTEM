@@ -3,6 +3,7 @@
 This server exposes two MCP tools without duplicating RecruitBot retrieval logic:
 
 - `search_candidates` calls the TypeScript backend at `POST /v1/search`.
+- `filter_candidates` calls the exact structured filter endpoint at `POST /v1/agent/filter-candidates`.
 - `web_search` calls a configurable Tavily-compatible provider.
 
 ## Run
