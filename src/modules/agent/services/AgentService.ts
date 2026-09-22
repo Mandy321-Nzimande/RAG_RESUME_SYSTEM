@@ -2,6 +2,7 @@ import { env } from "../../../config/env";
 import { getDatabase } from "../../../config/database";
 import { SearchService } from "../../retrieval/services/SearchService";
 import { RankedResult, SearchFilters } from "../../retrieval/types/retrieval.types";
+import { parseRecruiterQuery, ParsedQuery } from "./QueryParser";
 
 export interface WebSource {
   title: string;
@@ -12,6 +13,7 @@ export interface WebSource {
 export interface AgentChatResult {
   answer: string;
   candidates: RankedResult[];
+  parsed_query: ParsedQuery;
   tools_used: string[];
   sources: WebSource[];
   degraded: boolean;
@@ -59,8 +61,15 @@ function candidateAnswer(query: string, candidates: RankedResult[]): string {
 
 export class AgentService {
   async chat(query: string, filters: SearchFilters = {}, topK = 10): Promise<AgentChatResult> {
+    const parsed_query = parseRecruiterQuery(query);
+    const experienceConstraint = parsed_query.hard_constraints.experience_years;
+    const parsedMinYears = experienceConstraint?.$gte;
+    const effectiveFilters: SearchFilters = {
+      ...filters,
+      ...(typeof parsedMinYears === "number" ? { minYearsExperience: parsedMinYears } : {})
+    };
     const searchService = new SearchService(getDatabase());
-    const search = await searchService.endToEndSearch(query, filters, {
+    const search = await searchService.endToEndSearch(parsed_query.semantic_query || query, effectiveFilters, {
       finalTopK: Math.min(Math.max(Math.floor(topK), 1), 20),
       rerankTopN: Math.min(Math.max(Math.floor(topK) * 2, 10), 50),
       bm25TopK: 20,
@@ -94,6 +103,7 @@ export class AgentService {
     return {
       answer,
       candidates: search.results,
+      parsed_query,
       tools_used,
       sources,
       degraded: search.degraded || warnings.includes("WEB_SEARCH_FAILED"),
