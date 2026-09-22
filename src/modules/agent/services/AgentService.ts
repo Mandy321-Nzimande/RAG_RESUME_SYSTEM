@@ -80,7 +80,7 @@ export class AgentService {
     const tools_used = ["search_candidates"];
     const warnings = [...search.warnings];
     const candidateSearch = CANDIDATE_TERMS.test(query);
-    const needsExternalContext = !candidateSearch || search.results.length === 0 || search.degraded;
+    const needsExternalContext = !candidateSearch || search.results.length === 0;
     let sources: WebSource[] = [];
     let answer = candidateAnswer(query, search.results);
 

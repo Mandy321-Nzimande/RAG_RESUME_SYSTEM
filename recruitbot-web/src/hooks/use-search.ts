@@ -63,15 +63,34 @@ export function useSearch() {
         })
       );
 
-      // Only show a warning for critical failures (both search strategies failed)
-      // LLM rerank/summarize failures are handled gracefully — results still shown
-      const criticalWarnings = data.warnings;
+      const criticalWarnings = data.warnings.filter(
+        (warning) =>
+          warning === 'BM25_FAILED' ||
+          warning === 'VECTOR_FAILED' ||
+          warning === 'SEARCH_UNAVAILABLE'
+      );
       if (criticalWarnings.length > 0) {
         addBotMessage(
           createElement(
             'p',
             { className: 'text-xs text-amber-400' },
             `⚠ Partial results only: ${criticalWarnings.join(', ')}`
+          )
+        );
+      }
+
+      const optionalWarnings = data.warnings.filter(
+        (warning) =>
+          warning !== 'BM25_FAILED' &&
+          warning !== 'VECTOR_FAILED' &&
+          warning !== 'SEARCH_UNAVAILABLE'
+      );
+      if (optionalWarnings.length > 0) {
+        addBotMessage(
+          createElement(
+            'p',
+            { className: 'text-xs text-text-muted' },
+            `Additional services unavailable: ${optionalWarnings.join(', ')}`
           )
         );
       }
